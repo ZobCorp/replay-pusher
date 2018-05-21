@@ -30,7 +30,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class Pusher {
 
-        private static final String HOST = "34.245.214.229";
+        private static final String HOST = "34.248.29.223";
 //    private static final String HOST = "localhost";
     private static final String PORT = "8000";
     private static final Client client = ClientBuilder.newBuilder().register(MultiPartFeature.class).build();
