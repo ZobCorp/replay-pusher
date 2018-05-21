@@ -2,4 +2,4 @@ Java 8 required
 
 Run with:
 
-java -jar <parser_directory>
+java -jar <jar_file> <parser_directory>

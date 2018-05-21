@@ -1,13 +1,13 @@
 package org.zcorp.replay_pusher;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.comparator.LastModifiedFileComparator;
 import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.media.multipart.MultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.media.multipart.file.FileDataBodyPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.management.FileSystem;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -29,7 +30,8 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class Pusher {
 
-    private static final String HOST = "34.245.214.229";
+        private static final String HOST = "34.245.214.229";
+//    private static final String HOST = "localhost";
     private static final String PORT = "8000";
     private static final Client client = ClientBuilder.newBuilder().register(MultiPartFeature.class).build();
     private static final WebTarget webTarget = client.target("http://" + HOST + ":" + PORT + "/player");
@@ -53,16 +55,18 @@ public class Pusher {
 
         logger.info("Replays path: {}", replayPaths);
         logger.info("Start pushing replays");
-        Files.list(replayPaths)
-                .filter(replayPath -> !isAlreadyPushed(replayPath))
-                .forEach(replayPath -> {
-            try {
-                Path jsonPath = parseReplay(replayPath);
-                pushFile(jsonPath);
-            } catch (Exception e) {
-                logger.error("Error while handling replay {}", replayPath, e);
-            }
-        });
+        File[] files = replayPaths.toFile().listFiles();
+        Arrays.asList(files).stream()
+                .sorted(LastModifiedFileComparator.LASTMODIFIED_REVERSE)
+                .filter(file -> !isAlreadyPushed(file.toPath()))
+                .forEach(file -> {
+                    try {
+                        Path jsonPath = parseReplay(file.toPath());
+                        pushFile(jsonPath);
+                    } catch (Exception e) {
+                        logger.error("Error while handling replay {}", file, e);
+                    }
+                });
     }
 
     private static boolean isAlreadyPushed(Path replay) {
@@ -98,7 +102,8 @@ public class Pusher {
 
     private static Path parseReplay(Path replay) throws IOException, InterruptedException {
         logger.info("Parsing: {}", replay);
-        Path jsonPath = Paths.get(TEMP_DIR, replay.getFileName() + ".json");
+        String matchId = StringUtils.removeEnd(replay.getFileName().toString(), ".replay");
+        Path jsonPath = Paths.get(TEMP_DIR, matchId + ".json");
         logger.info("JSON output: {}", jsonPath);
         String parserExe = parserPath + "\\RocketLeagueReplayParser.exe";
         logger.info("parserExe: {}", parserExe);
